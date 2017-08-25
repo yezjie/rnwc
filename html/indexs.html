@@ -1,0 +1,174 @@
+<!doctype html>
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="chrome=1">
+    <meta name="viewport" content="initial-scale=1.0, user-scalable=no, width=device-width">
+    <style type="text/css">
+        *{ margin:0;padding: 0;}
+        body,html,#container{
+            height: 100%;
+            margin: 0px;
+        }
+        .marketStyle{
+            width:50px;
+            height: 35px;
+            background: #FF5113;
+            border-radius: 3px;
+            text-align: center;
+            line-height: 35px;
+            color: #fff;
+        }
+        .infoWindow{
+            width:280px;
+            height:130px;
+            font-size:13px;
+            background-color:#fff;
+            box-shadow: 2px 2px 2px #888;
+            padding-bottom: 20px;
+        }
+        .info_arrow{
+            height:20px;
+            width:20px;
+            transform:rotate(-45deg);
+            -ms-transform:rotate(-45deg);
+            -moz-transform:rotate(45deg);
+            -webkit-transform:rotate(45deg);
+            -o-transform:rotate(45deg);
+            padding-left: 0 !important;
+            position: absolute;
+            left:125px;
+            top:132px;
+            background-color:#ffffff;
+            z-index: 4;
+        }
+        .info_title{
+            background-color:#0090FF;
+            height:28px;line-height:28px;color:#fff;padding-left:10px;
+        }
+        .infoWindow>div{padding-left:10px;margin-bottom:5px;}
+        .info_name{margin-top:10px;}
+        .info_address{color: #434754;}
+        .info_type{color: #434754;}
+        .info_dis{}
+        .dis_span{color: #FA2D00;font-weight: bold;}
+        .info_close{position: absolute;width:28px;height:26px;right:0;top:0;}
+        .info_close>img{margin-top:3px;right:3px;width:20px;}
+        .loc_circle{width:50px;height:50px;border:2px solid #49B3F4;
+            border-radius:50px;background-color:#64C7FA;opacity:0.5;}
+        .loc_img{position: relative;left:20px;top:-34px;}
+    </style>
+    <title>快速入门</title>
+</head>
+<body>
+<div id="container" tabindex="0"></div>
+<script type="text/javascript" src="http://webapi.amap.com/maps?v=1.3&key=c9f3bdecc5db8bdc36728f0297a7acac"></script>
+<script type="text/javascript">
+    var map = new AMap.Map('container',{
+        resizeEnable: true,
+        zoom: 10,
+    });
+    AMap.plugin(['AMap.ToolBar','AMap.Scale'],function () {
+        var tool = new AMap.ToolBar({
+            position:"RB",
+            liteStyle:true
+        });
+        map.addControl(tool);
+        map.addControl(new AMap.Scale())
+    })
+    // 定位
+    map.plugin('AMap.Geolocation', function () {
+        geolocation = new AMap.Geolocation({
+            enableHighAccuracy: true,//是否使用高精度定位，默认:true
+            timeout: 10000,          //超过10秒后停止定位，默认：无穷大
+            maximumAge: 0,           //定位结果缓存0毫秒，默认：0
+            convert: true,           //自动偏移坐标，偏移后的坐标为高德坐标，默认：true
+            showButton: true,        //显示定位按钮，默认：true
+            buttonPosition: 'RT',    //定位按钮停靠位置，默认：'LB'，左下角
+            buttonOffset: new AMap.Pixel(10, 20),//定位按钮与设置的停靠位置的偏移量，默认：Pixel(10, 20)
+            showMarker: true,        //定位成功后在定位到的位置显示点标记，默认：true
+            showCircle: true,        //定位成功后用圆圈表示定位精度范围，默认：true
+            panToLocation: true,     //定位成功后将定位到的位置作为地图中心点，默认：true
+            zoomToAccuracy:true      //定位成功后调整地图视野范围使定位位置及精度范围视野内可见，默认：false
+        });
+        map.addControl(geolocation);
+        geolocation.getCurrentPosition(); // 初始定位
+        AMap.event.addListener(geolocation, 'complete', onComplete);//返回定位信息
+        AMap.event.addListener(geolocation, 'error', onError);      //返回定位出错信息
+    });
+    // 关闭信息窗口
+    function _closeInfoWindow() {
+        map.clearInfoWindow();
+    }
+    // 开启路线规划服务
+    var walking
+    AMap.service(["AMap.Walking"], function() {
+        walking = new AMap.Walking({
+            map:map,
+//            panel:"panel"
+        })
+    })
+    function onComplete(res) {
+        // 定位成功的回调
+        if(res.status && res.info == "SUCCESS"){
+            console.log(res.position);
+            AMap.service(["AMap.PlaceSearch"], function() {
+                var placeSearch = new AMap.PlaceSearch({ //构造地点查询类
+                    pageSize: 5,
+                    pageIndex: 1,
+                    map: map,
+                    panel: "panel"
+                });
+                //关键字查询
+                var center = [res.position.lng, res.position.lat];
+                placeSearch.searchNearBy("公共厕所", center, 1000, function(status, result) {
+                    if (status === 'complete' && result.info === 'OK') {
+                        //TODO : 解析返回结果,如果设置了map和panel，api将帮助完成点标注和列表
+                        // 创建点
+                        // 自定义样式
+
+                        var pois = result.poiList.pois;
+                        pois.forEach(function (poi) {
+                            var markerStyle = "<div class='marketStyle'>"+poi.distance+"</div>"
+                            var marker = new AMap.Marker({ //添加自定义点标记
+                                map: map,
+                                position: poi.location, //基点位置
+                                offset: new AMap.Pixel(-17, -42), //相对于基点的偏移位置
+                                draggable: false,  //是否可拖动
+                                content: markerStyle   //自定义点标记覆盖物内容
+                            });
+                            // 给标记添加事件
+                            AMap.event.addListener(marker, 'touchstart', function () {
+                                var info = '<div class="infoWindow"><div class="info_title">卫生间</div>'
+                                    + '<div class="info_name">名称: ' + poi.name+ '</div>'
+                                    + '<div class="info_dis">距您: ' + '<span class="dis_span">' + poi.distance + '米</span>' + '</div>'
+                                    + '<div class="info_address">地址: ' + poi.address+ '</div>'
+                                    + '<div class="info_type">类型: ' + (poi.type || '卫生间')+ '</div>'
+                                    + '<div class="info_arrow"></div>';
+                                info +='<div class="info_close" ontouchstart="_closeInfoWindow()"><img src="../img/close.png" style=""/></div>'
+                                    + '</div>';
+                                var infoWindow = new AMap.InfoWindow({
+                                    isCustom: true,  //使用自定义窗体
+                                    content: info,
+
+                                    offset: new AMap.Pixel(16, -45)
+                                });
+                                // 开启信息窗体
+                                infoWindow.open(map, poi.location);
+
+                                var ending = [poi.location.lng,poi.location.lat,];
+                                walking.search(center,ending)
+                            });
+                        })
+
+                    }
+                });
+            });
+        }
+    }
+    function onError() {
+        // 定位失败
+        alert("定位失败，请到手机设置中更改定位设置")
+    }
+</script>
+</body>
+</html>
